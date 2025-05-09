@@ -1,0 +1,38 @@
+# Python / Django
+*.pyc
+__pycache__/
+*.sqlite3
+*.log
+.env
+
+# React / Node
+node_modules/
+build/
+dist/
+coverage/
+*.env.local
+*.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Virtual Environment
+venv/
+
+# Temp files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# IDE/editor config
+.vscode/
+.idea/
+*.iml
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# App-specific temp (if needed)
+Backend/temp/
