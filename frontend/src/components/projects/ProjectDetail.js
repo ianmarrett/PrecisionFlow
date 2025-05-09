@@ -264,3 +264,5 @@ const ProjectDetail = () => {
       </div>
     </div>
   );
+}
+export default ProjectDetail;
