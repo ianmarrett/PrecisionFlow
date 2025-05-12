@@ -4,8 +4,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import Projects, Customers, EquipmentTypeChoices
-from .serializers import ProjectsSerializer, CustomersSerializer
+from .models import Projects, Customers, EquipmentTypeChoices, ProcessMap
+from .serializers import ProjectsSerializer, CustomersSerializer, ProcessMapSerializer
 import os
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -200,8 +200,8 @@ def upload_sketch(request, project_id):
     
     return Response({'file_path': path}, status=status.HTTP_201_CREATED)
 
-# Process and Matrix related endpoints
-@api_view(['GET', 'POST', 'PUT'])
+
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def process_map(request, project_id):
     """
     Handle process map operations for a project
@@ -212,19 +212,42 @@ def process_map(request, project_id):
         return Response(status=status.HTTP_404_NOT_FOUND)
     
     if request.method == 'GET':
-        # Return process map data
-        # You'll need to implement this based on your process map model
-        return Response({'message': 'Process map data retrieval to be implemented'})
+        # Return all process map entries for this project
+        entries = ProcessMap.objects.filter(project=project)
+        serializer = ProcessMapSerializer(entries, many=True)
+        return Response(serializer.data)
     
     elif request.method == 'POST':
-        # Create new process map
-        # You'll need to implement this based on your process map model
-        return Response({'message': 'Process map creation to be implemented'})
+        # Create a new process map entry
+        request.data['project'] = project.id
+        serializer = ProcessMapSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'PUT':
-        # Update process map
-        # You'll need to implement this based on your process map model
-        return Response({'message': 'Process map update to be implemented'})
+        # Update an existing process map entry
+        try:
+            entry_id = request.data.get('id')
+            entry = ProcessMap.objects.get(id=entry_id, project=project)
+            serializer = ProcessMapSerializer(entry, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ProcessMap.DoesNotExist:
+            return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    elif request.method == 'DELETE':
+        # Delete a process map entry
+        try:
+            entry_id = request.data.get('id')
+            entry = ProcessMap.objects.get(id=entry_id, project=project)
+            entry.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProcessMap.DoesNotExist:
+            return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET', 'POST', 'PUT'])
 def process_matrix(request, project_id):

@@ -50,4 +50,19 @@ class Projects(models.Model):
     class Meta:
         verbose_name_plural = "Projects"
         ordering = ['project_id']
+
+
+class ProcessMap(models.Model):
+    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='process_map_entries')
+    station_number = models.CharField(max_length=10)
+    process_step = models.IntegerField()
+    process = models.CharField(max_length=200)
+    dwell_time = models.IntegerField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name_plural = "Process Map Entries"
+        ordering = ['process_step']
+        
+    def __str__(self):
+        return f"Step {self.process_step}: Station {self.station_number}"
     
