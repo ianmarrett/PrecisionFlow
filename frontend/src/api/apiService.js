@@ -126,3 +126,46 @@ export const uploadSketch = async (projectId, file) => {
     throw error;
   }
 };
+
+// Process Map API functions
+export const fetchProcessMap = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/process-map/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching process map for project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const createProcessMapEntry = async (projectId, entryData) => {
+  try {
+    const response = await apiClient.post(`/projects/${projectId}/process-map/`, entryData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating process map entry:', error);
+    throw error;
+  }
+};
+
+export const updateProcessMapEntry = async (projectId, entryData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/process-map/`, entryData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating process map entry:`, error);
+    throw error;
+  }
+};
+
+export const deleteProcessMapEntry = async (projectId, entryId) => {
+  try {
+    const response = await apiClient.delete(`/projects/${projectId}/process-map/`, {
+      data: { id: entryId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting process map entry:`, error);
+    throw error;
+  }
+};

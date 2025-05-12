@@ -13,6 +13,7 @@ import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetail from './components/projects/ProjectDetail';
 import ProjectForm from './components/projects/ProjectForm';
+import ProcessMap from './components/projects/ProcessMap';
 import Customers from './pages/Customers';
 import CustomerDetail from './components/customers/CustomerDetail';
 import CustomerForm from './components/customers/CustomerForm';
@@ -33,6 +34,9 @@ function App() {
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
             <Route path="/projects/:projectId/edit" element={<ProjectForm />} />
             
+            {/* Process Map Route - add this */}
+            <Route path="/projects/:projectId/process-map" element={<ProcessMap />} />
+
             {/* Customer Routes */}
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/new" element={<CustomerForm />} />
