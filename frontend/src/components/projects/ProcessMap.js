@@ -15,7 +15,8 @@ const ProcessMap = () => {
   const [formData, setFormData] = useState({
     station_number: '',
     process_step: '',
-    process: ''
+    process: '',
+    dwell_time: ''
   });
   
   const [editMode, setEditMode] = useState(false);
@@ -80,7 +81,8 @@ const ProcessMap = () => {
       setFormData({
         station_number: '',
         process_step: '',
-        process: ''
+        process: '',
+        dwell_time: ''
       });
     } catch (err) {
       setError('Error saving process map entry. Please try again.');
@@ -91,7 +93,8 @@ const ProcessMap = () => {
     setFormData({
       station_number: entry.station_number,
       process_step: entry.process_step,
-      process: entry.process
+      process: entry.process,
+      dwell_time: entry.dwell_time
     });
     setEditMode(true);
     setCurrentEntryId(entry.id);
@@ -114,7 +117,8 @@ const ProcessMap = () => {
     setFormData({
       station_number: '',
       process_step: '',
-      process: ''
+      process: '',
+      dwell_time: ''
     });
     setEditMode(false);
     setCurrentEntryId(null);
@@ -186,6 +190,17 @@ const ProcessMap = () => {
                   required
                 />
               </div>
+              <div className="col-md-3">
+                <label htmlFor="dwell_time" className="form-label">Dwell Time (sec)</label>
+                <input 
+                  type="number" 
+                  className="form-control" 
+                  id="dwell_time" 
+                  name="dwell_time" 
+                  value={formData.dwell_time} 
+                  onChange={handleChange}
+                />
+              </div>
             </div>
             <div className="d-flex justify-content-end">
               {editMode && (
@@ -218,6 +233,7 @@ const ProcessMap = () => {
                     <th>Station #</th>
                     <th>Process Step</th>
                     <th>Process</th>
+                    <th>Dwell Time (sec)</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -227,6 +243,7 @@ const ProcessMap = () => {
                       <td>{entry.station_number}</td>
                       <td>{entry.process_step}</td>
                       <td>{entry.process}</td>
+                      <td>{entry.dwell_time}</td>
                       <td>
                         <button 
                           className="btn btn-sm btn-warning me-2" 
