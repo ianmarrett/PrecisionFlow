@@ -51,7 +51,12 @@ urlpatterns = [
     path("projects/<str:project_id>/edit/", views.index),
     path("customers/", views.index),
     path("customers/<int:customer_id>/", views.index),
-]
+
+    # Simulation-related API endpoints
+    path("api/projects/<str:project_id>/production-goal/", views.production_goal, name="production_goal"),
+    path("api/projects/<str:project_id>/simulation/parameters/", views.simulation_parameters, name="simulation_parameters"),
+    path("api/projects/<str:project_id>/simulation/run/", views.run_simulation, name="run_simulation"),
+    path("api/projects/<str:project_id>/simulation/quick/", views.quick_simulation, name="quick_simulation")]
 
 # Add the router URLs to our urlpatterns
 urlpatterns += router.urls

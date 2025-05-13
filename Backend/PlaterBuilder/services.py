@@ -1,62 +1,11 @@
-from django.db import models
-
-#these are options that can be selected for equipment type
-class EquipmentTypeChoices(models.TextChoices):
-    RACK = 'rack', 'Rack'
-    BARREL = 'barrel', 'Barrel'
-    REEL_TO_REEL = 'reel_to_reel', 'Reel to Reel'
-    ROLL_TO_ROLL = 'roll_to_roll', 'Roll to Roll'
-    OTHER = 'other', 'Other'
-
-    def __str__(self):
-        return self.name
-
-class Customers(models.Model):
-    company_name = models.CharField(max_length=200)
-    point_of_contact = models.CharField(max_length=200)
-    #phone_number = PhoneNumberField(unique=True, null=False, blank=False) #have to install with pip using... pip install django-phonenumber-field[phonenumbers]
-    email = models.EmailField()
-
-    def __str__(self):
-        return f"{self.company_name} ({self.point_of_contact})"
-    
-    class Meta:
-        verbose_name_plural = "Customers"
-
-
-class Projects(models.Model):
-    #project identifiers
-    project_id = models.CharField(max_length=10, unique=True)
-    project_name = models.CharField(max_length=200)
-    customer = models.ForeignKey(Customers, on_delete=models.CASCADE)
-    date_created = models.DateTimeField(auto_now_add=True)
-    last_updated = models.DateTimeField(auto_now=True)
-    spec_document = models.FileField(upload_to='documents/specs/', blank=True, null=True)
-    sketch = models.FileField(upload_to='documents/sketches/', blank=True, null=True)
-    
-    #equipment info
-    equipment_type = models.CharField(
-        max_length=20,
-        choices=EquipmentTypeChoices.choices,
-        blank=True,
-    )
-    process = models.CharField(max_length=200)
-    substrate = models.CharField(max_length=100)
-    #spec_document = models.FileField(upload_to='documents/')   gotta set something else up here for this to work
-
-    def __str__(self):
-        return f"{self.project_name} ({self.project_id})"
-    
-    class Meta:
-        verbose_name_plural = "Projects"
-        ordering = ['project_id']
+from Backend.PlaterBuilder import models
 
 
 class ProcessMapEntry(models.Model):
     """
     Individual process step in the plating line
     """
-    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='process_map_entries')
+    project = models.ForeignKey(models.Projects, on_delete=models.CASCADE, related_name='process_map_entries')
     station_number = models.CharField(max_length=10)
     process_step = models.IntegerField()
     process = models.CharField(max_length=200)
@@ -91,7 +40,7 @@ class ProductionGoal(models.Model):
     """
     Production targets for the project
     """
-    project = models.OneToOneField(Projects, on_delete=models.CASCADE, related_name='production_goal')
+    project = models.OneToOneField(models.Projects, on_delete=models.CASCADE, related_name='production_goal')
     
     # Production targets
     target_parts_per_hour = models.FloatField(null=True, blank=True, help_text="Target parts per hour")
@@ -124,7 +73,7 @@ class SimulationParameters(models.Model):
     """
     Global parameters for production simulation
     """
-    project = models.OneToOneField(Projects, on_delete=models.CASCADE, related_name='simulation_parameters')
+    project = models.OneToOneField(models.Projects, on_delete=models.CASCADE, related_name='simulation_parameters')
     
     # Line configuration
     process_lines = models.IntegerField(default=1, help_text="Number of parallel process lines")
@@ -172,7 +121,7 @@ class SimulationResult(models.Model):
     """
     Results of production throughput simulation
     """
-    project = models.ForeignKey(Projects, on_delete=models.CASCADE, related_name='simulation_results')
+    project = models.ForeignKey(models.Projects, on_delete=models.CASCADE, related_name='simulation_results')
     simulation_date = models.DateTimeField(auto_now_add=True)
     name = models.CharField(max_length=100, default="Simulation Run", help_text="Name for this simulation run")
     
