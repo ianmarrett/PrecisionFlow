@@ -26,7 +26,7 @@ class SimulationParametersSerializer(serializers.ModelSerializer):
         model = SimulationParameters
         fields = '__all__'
 
-class SimulationResultsSerializer(serializers.ModelSerializer):
+class SimulationResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = SimulationResult
         fields = '__all__'
