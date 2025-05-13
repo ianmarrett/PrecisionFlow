@@ -1,5 +1,6 @@
 from Backend.PlaterBuilder import models
-
+from .models import Projects, ProcessMapEntry, SimulationParameters, ProductionGoal, SimulationResult
+from .serializers import SimulationResultSerializer
 
 class ProcessMapEntry(models.Model):
     """
