@@ -14,6 +14,7 @@ import Projects from './pages/Projects';
 import ProjectDetail from './components/projects/ProjectDetail';
 import ProjectForm from './components/projects/ProjectForm';
 import ProcessMap from './components/projects/ProcessMap';
+import Simulation from './components/projects/Simulation';
 import Customers from './pages/Customers';
 import CustomerDetail from './components/customers/CustomerDetail';
 import CustomerForm from './components/customers/CustomerForm';
@@ -36,6 +37,9 @@ function App() {
             
             {/* Process Map Route - add this */}
             <Route path="/projects/:projectId/process-map" element={<ProcessMap />} />
+
+            {/* Simulation Route - Add this */}
+            <Route path="/projects/:projectId/simulation" element={<Simulation />} />
 
             {/* Customer Routes */}
             <Route path="/customers" element={<Customers />} />

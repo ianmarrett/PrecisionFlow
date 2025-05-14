@@ -4,8 +4,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import Projects, Customers, EquipmentTypeChoices, ProcessMap
-from .serializers import ProjectsSerializer, CustomersSerializer, ProcessMapSerializer
+from .models import Projects, Customers, EquipmentTypeChoices, ProcessMapEntry, ProductionGoal, SimulationParameters, SimulationResult
+from .serializers import ProjectsSerializer, CustomersSerializer, ProcessMapEntrySerializer, ProductionGoalSerializer, SimulationParametersSerializer, SimulationResultSerializer
 import os
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -213,14 +213,14 @@ def process_map(request, project_id):
     
     if request.method == 'GET':
         # Return all process map entries for this project
-        entries = ProcessMap.objects.filter(project=project)
-        serializer = ProcessMapSerializer(entries, many=True)
+        entries = ProcessMapEntry.objects.filter(project=project)
+        serializer = ProcessMapEntrySerializer(entries, many=True)
         return Response(serializer.data)
     
     elif request.method == 'POST':
         # Create a new process map entry
         request.data['project'] = project.id
-        serializer = ProcessMapSerializer(data=request.data)
+        serializer = ProcessMapEntrySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -230,23 +230,23 @@ def process_map(request, project_id):
         # Update an existing process map entry
         try:
             entry_id = request.data.get('id')
-            entry = ProcessMap.objects.get(id=entry_id, project=project)
-            serializer = ProcessMapSerializer(entry, data=request.data, partial=True)
+            entry = ProcessMapEntry.objects.get(id=entry_id, project=project)
+            serializer = ProcessMapEntrySerializer(entry, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except ProcessMap.DoesNotExist:
+        except ProcessMapEntry.DoesNotExist:
             return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
     
     elif request.method == 'DELETE':
         # Delete a process map entry
         try:
             entry_id = request.data.get('id')
-            entry = ProcessMap.objects.get(id=entry_id, project=project)
+            entry = ProcessMapEntry.objects.get(id=entry_id, project=project)
             entry.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        except ProcessMap.DoesNotExist:
+        except ProcessMapEntry.DoesNotExist:
             return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET', 'POST', 'PUT'])
@@ -364,3 +364,191 @@ def equipment_type_choices(request):
             'label': choice[1]
         })
     return Response(choices)
+
+# views.py additions
+
+@api_view(['GET', 'POST', 'PUT'])
+def production_goal(request, project_id):
+    """
+    Get or update production goals
+    """
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        # Get or create production goal
+        goal, created = ProductionGoal.objects.get_or_create(project=project)
+        serializer = ProductionGoalSerializer(goal)
+        return Response(serializer.data)
+    
+    elif request.method in ['POST', 'PUT']:
+        # Get existing or create new
+        try:
+            goal = ProductionGoal.objects.get(project=project)
+            serializer = ProductionGoalSerializer(goal, data=request.data, partial=True)
+        except ProductionGoal.DoesNotExist:
+            request.data['project'] = project.id
+            serializer = ProductionGoalSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            goal = serializer.save()
+            
+            # Update other targets based on primary target
+            primary = request.data.get('primary_target', goal.primary_target)
+            
+            # If we have simulation parameters, use them to calculate other targets
+            try:
+                params = SimulationParameters.objects.get(project=project)
+                hours_per_day = params.working_hours_per_day
+                days_per_week = params.working_days_per_week
+            except SimulationParameters.DoesNotExist:
+                hours_per_day = 8
+                days_per_week = 5
+            
+            # Update the targets based on the primary target
+            if primary == 'hour' and request.data.get('target_parts_per_hour'):
+                pph = float(request.data.get('target_parts_per_hour'))
+                goal.target_parts_per_day = pph * hours_per_day
+                goal.target_parts_per_week = goal.target_parts_per_day * days_per_week
+                goal.target_parts_per_month = goal.target_parts_per_week * 4
+                goal.target_parts_per_year = goal.target_parts_per_month * 12
+                goal.save()
+            elif primary == 'day' and request.data.get('target_parts_per_day'):
+                ppd = float(request.data.get('target_parts_per_day'))
+                goal.target_parts_per_hour = ppd / hours_per_day
+                goal.target_parts_per_week = ppd * days_per_week
+                goal.target_parts_per_month = goal.target_parts_per_week * 4
+                goal.target_parts_per_year = goal.target_parts_per_month * 12
+                goal.save()
+            elif primary == 'week' and request.data.get('target_parts_per_week'):
+                ppw = float(request.data.get('target_parts_per_week'))
+                goal.target_parts_per_day = ppw / days_per_week
+                goal.target_parts_per_hour = goal.target_parts_per_day / hours_per_day
+                goal.target_parts_per_month = ppw * 4
+                goal.target_parts_per_year = goal.target_parts_per_month * 12
+                goal.save()
+            elif primary == 'month' and request.data.get('target_parts_per_month'):
+                ppm = float(request.data.get('target_parts_per_month'))
+                goal.target_parts_per_week = ppm / 4
+                goal.target_parts_per_day = goal.target_parts_per_week / days_per_week
+                goal.target_parts_per_hour = goal.target_parts_per_day / hours_per_day
+                goal.target_parts_per_year = ppm * 12
+                goal.save()
+            elif primary == 'year' and request.data.get('target_parts_per_year'):
+                ppy = float(request.data.get('target_parts_per_year'))
+                goal.target_parts_per_month = ppy / 12
+                goal.target_parts_per_week = goal.target_parts_per_month / 4
+                goal.target_parts_per_day = goal.target_parts_per_week / days_per_week
+                goal.target_parts_per_hour = goal.target_parts_per_day / hours_per_day
+                goal.save()
+            
+            # Return updated data
+            serializer = ProductionGoalSerializer(goal)
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'POST', 'PUT'])
+def simulation_parameters(request, project_id):
+    """
+    Get or update simulation parameters
+    """
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        # Get or create simulation parameters
+        parameters, created = SimulationParameters.objects.get_or_create(project=project)
+        serializer = SimulationParametersSerializer(parameters)
+        return Response(serializer.data)
+    
+    elif request.method in ['POST', 'PUT']:
+        # Get existing or create new
+        try:
+            parameters = SimulationParameters.objects.get(project=project)
+            serializer = SimulationParametersSerializer(parameters, data=request.data, partial=True)
+        except SimulationParameters.DoesNotExist:
+            request.data['project'] = project.id
+            serializer = SimulationParametersSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            
+            # If parameters are updated, recalculate hoist count
+            from .services import ProductionSimulator
+            simulator = ProductionSimulator(project_id)
+            optimal_hoists = simulator.calculate_optimal_hoists()
+            
+            parameters = SimulationParameters.objects.get(project=project)
+            parameters.calculated_hoist_count = optimal_hoists
+            parameters.save()
+            
+            # Return updated data
+            serializer = SimulationParametersSerializer(parameters)
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'POST'])
+def run_simulation(request, project_id):
+    """
+    Run production simulation and return results
+    """
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    # Get simulation history for GET requests
+    if request.method == 'GET':
+        simulations = SimulationResult.objects.filter(project=project).order_by('-simulation_date')
+        serializer = SimulationResultSerializer(simulations, many=True)
+        return Response(serializer.data)
+    
+    # Run new simulation for POST requests
+    elif request.method == 'POST':
+        from .services import ProductionSimulator
+        
+        # Get simulation name if provided
+        name = request.data.get('name', "Simulation Run")
+        
+        simulator = ProductionSimulator(project_id)
+        result = simulator.run_simulation(name=name)
+        
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(result, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+def quick_simulation(request, project_id):
+    """
+    Run a quick simulation without saving results
+    """
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    from .services import ProductionSimulator
+    
+    simulator = ProductionSimulator(project_id)
+    
+    # Get manual hoist count if provided in query params
+    hoist_count = request.query_params.get('hoists', None)
+    if hoist_count:
+        try:
+            hoist_count = int(hoist_count)
+        except ValueError:
+            hoist_count = None
+    
+    results = simulator.calculate_throughput(hoist_count=hoist_count)
+    
+    if "error" in results:
+        return Response(results, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response(results)

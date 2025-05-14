@@ -127,6 +127,8 @@ export const uploadSketch = async (projectId, file) => {
   }
 };
 
+// src/api/apiService.js (additional functions)
+
 // Process Map API functions
 export const fetchProcessMap = async (projectId) => {
   try {
@@ -166,6 +168,83 @@ export const deleteProcessMapEntry = async (projectId, entryId) => {
     return response.data;
   } catch (error) {
     console.error(`Error deleting process map entry:`, error);
+    throw error;
+  }
+};
+
+// Production Goals API functions
+export const getProductionGoal = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/production-goal/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching production goal for project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const updateProductionGoal = async (projectId, goalData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/production-goal/`, goalData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating production goal:`, error);
+    throw error;
+  }
+};
+
+// Simulation Parameters API functions
+export const getSimulationParameters = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/simulation/parameters/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching simulation parameters for project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const updateSimulationParameters = async (projectId, paramsData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/simulation/parameters/`, paramsData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating simulation parameters:`, error);
+    throw error;
+  }
+};
+
+// Simulation API functions
+export const runQuickSimulation = async (projectId, hoistCount) => {
+  try {
+    let url = `/projects/${projectId}/simulation/quick/`;
+    if (hoistCount) {
+      url += `?hoists=${hoistCount}`;
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error(`Error running quick simulation:`, error);
+    throw error;
+  }
+};
+
+export const runSimulation = async (projectId, options = {}) => {
+  try {
+    const response = await apiClient.post(`/projects/${projectId}/simulation/run/`, options);
+    return response.data;
+  } catch (error) {
+    console.error(`Error running simulation:`, error);
+    throw error;
+  }
+};
+
+export const getSimulationResults = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/simulation/run/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching simulation results:`, error);
     throw error;
   }
 };
