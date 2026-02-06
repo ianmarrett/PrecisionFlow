@@ -1,18 +1,19 @@
 // src/components/projects/Simulation.js
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchProjectById, fetchProcessMap, getProductionGoal, updateProductionGoal, 
+import { fetchProjectById, fetchStations, fetchRecipes, getProductionGoal, updateProductionGoal,
          getSimulationParameters, updateSimulationParameters, runSimulation, getSimulationResults } from '../../api/apiService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faSave, faArrowLeft, faSync, faChartLine } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faSave, faArrowLeft, faChartLine } from '@fortawesome/free-solid-svg-icons';
 
 const Simulation = () => {
   const { projectId } = useParams();
   
   // Basic state
   const [project, setProject] = useState(null);
-  const [processMapEntries, setProcessMapEntries] = useState([]);
+  const [stations, setStations] = useState([]);
+  const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -59,10 +60,12 @@ const Simulation = () => {
         // Load project details
         const projectData = await fetchProjectById(projectId);
         setProject(projectData);
-        
-        // Load process map entries
-        const processMapData = await fetchProcessMap(projectId);
-        setProcessMapEntries(processMapData);
+
+        // Load stations and recipes
+        const stationData = await fetchStations(projectId);
+        setStations(stationData);
+        const recipeData = await fetchRecipes(projectId);
+        setRecipes(recipeData);
         
         // Load production goals
         const goalData = await getProductionGoal(projectId);
@@ -163,8 +166,8 @@ const Simulation = () => {
   
   // Run a new simulation
   const handleRunSimulation = async () => {
-    if (processMapEntries.length === 0) {
-      setError('Cannot run simulation without process map entries.');
+    if (stations.length === 0 || recipes.length === 0) {
+      setError('Cannot run simulation without stations and at least one recipe with steps.');
       return;
     }
     
@@ -227,9 +230,13 @@ const Simulation = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Production Simulation - {project.project_name}</h1>
         <div>
-          <Link to={`/projects/${projectId}/process-map`} className="btn btn-secondary">
+          <Link to={`/projects/${projectId}/stations`} className="btn btn-secondary me-2">
             <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
-            Back to Process Map
+            Station Layout
+          </Link>
+          <Link to={`/projects/${projectId}/recipes`} className="btn btn-secondary">
+            <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
+            Recipes
           </Link>
         </div>
       </div>
@@ -570,10 +577,10 @@ const Simulation = () => {
                 />
               </div>
               
-              <button 
-                className="btn btn-success w-100" 
+              <button
+                className="btn btn-success w-100"
                 onClick={handleRunSimulation}
-                disabled={simLoading || processMapEntries.length === 0}
+                disabled={simLoading || stations.length === 0 || recipes.length === 0}
               >
                 {simLoading ? (
                   <>
@@ -588,9 +595,9 @@ const Simulation = () => {
                 )}
               </button>
               
-              {processMapEntries.length === 0 && (
+              {(stations.length === 0 || recipes.length === 0) && (
                 <div className="alert alert-warning mt-3">
-                  <small>You need to add process steps in the Process Map before running a simulation.</small>
+                  <small>You need stations and at least one recipe with steps before running a simulation.</small>
                 </div>
               )}
             </div>
@@ -738,6 +745,63 @@ const Simulation = () => {
                         </div>
                       </div>
                       
+                      {/* Recipe Breakdown */}
+                      {selectedResult.recipe_results && selectedResult.recipe_results.length > 0 && (
+                        <div className="card mb-3">
+                          <div className="card-header bg-light">
+                            <h5 className="mb-0">Recipe Breakdown</h5>
+                          </div>
+                          <div className="card-body">
+                            <table className="table table-sm">
+                              <thead>
+                                <tr>
+                                  <th>Recipe</th>
+                                  <th>Ratio</th>
+                                  <th>Cycle Time (s)</th>
+                                  <th>Parts/Hour</th>
+                                  <th>Parts/Day</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {selectedResult.recipe_results.map((rr, idx) => (
+                                  <tr key={idx}>
+                                    <td>{rr.recipe_name}</td>
+                                    <td>{rr.production_ratio}</td>
+                                    <td>{rr.cycle_time}</td>
+                                    <td>{rr.parts_per_hour}</td>
+                                    <td>{rr.parts_per_day}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Station Utilization */}
+                      {selectedResult.station_utilization && selectedResult.station_utilization.length > 0 && (
+                        <div className="card mb-3">
+                          <div className="card-header bg-light">
+                            <h5 className="mb-0">Station Utilization</h5>
+                          </div>
+                          <div className="card-body">
+                            <ResponsiveContainer width="100%" height={Math.max(200, selectedResult.station_utilization.length * 35)}>
+                              <BarChart
+                                data={selectedResult.station_utilization}
+                                layout="vertical"
+                                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" domain={[0, 100]} unit="%" />
+                                <YAxis type="category" dataKey="station_number" width={70} />
+                                <Tooltip formatter={(value) => `${value}%`} />
+                                <Bar dataKey="utilization_pct" fill="#82ca9d" name="Utilization %" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Charts */}
                       <div className="card">
                         <div className="card-header bg-light">
@@ -770,11 +834,11 @@ const Simulation = () => {
                             <div className="col-md-6 mb-4">
                               <h6 className="text-center">Hoists vs. Cycle Time</h6>
                               <ResponsiveContainer width="100%" height={300}>
-                                <LineChart 
+                                <LineChart
                                   data={simulationComparisonData}
                                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                                 >
-                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <CartesianGrid strokeDasharray="3 3" yAxisId="left" />
                                   <XAxis dataKey="name" />
                                   <YAxis yAxisId="left" />
                                   <YAxis yAxisId="right" orientation="right" />

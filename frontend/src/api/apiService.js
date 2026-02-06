@@ -127,51 +127,6 @@ export const uploadSketch = async (projectId, file) => {
   }
 };
 
-// src/api/apiService.js (additional functions)
-
-// Process Map API functions
-export const fetchProcessMap = async (projectId) => {
-  try {
-    const response = await apiClient.get(`/projects/${projectId}/process-map/`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching process map for project ${projectId}:`, error);
-    throw error;
-  }
-};
-
-export const createProcessMapEntry = async (projectId, entryData) => {
-  try {
-    const response = await apiClient.post(`/projects/${projectId}/process-map/`, entryData);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating process map entry:', error);
-    throw error;
-  }
-};
-
-export const updateProcessMapEntry = async (projectId, entryData) => {
-  try {
-    const response = await apiClient.put(`/projects/${projectId}/process-map/`, entryData);
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating process map entry:`, error);
-    throw error;
-  }
-};
-
-export const deleteProcessMapEntry = async (projectId, entryId) => {
-  try {
-    const response = await apiClient.delete(`/projects/${projectId}/process-map/`, {
-      data: { id: entryId }
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error deleting process map entry:`, error);
-    throw error;
-  }
-};
-
 // Production Goals API functions
 export const getProductionGoal = async (projectId) => {
   try {
@@ -245,6 +200,146 @@ export const getSimulationResults = async (projectId) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching simulation results:`, error);
+    throw error;
+  }
+};
+
+// ---- Station API functions ----
+
+export const fetchStations = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/stations/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching stations for project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const createStation = async (projectId, stationData) => {
+  try {
+    const response = await apiClient.post(`/projects/${projectId}/stations/`, stationData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating station:', error);
+    throw error;
+  }
+};
+
+export const updateStation = async (projectId, stationData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/stations/`, stationData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating station:', error);
+    throw error;
+  }
+};
+
+export const deleteStation = async (projectId, stationId) => {
+  try {
+    const response = await apiClient.delete(`/projects/${projectId}/stations/`, {
+      data: { id: stationId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting station:', error);
+    throw error;
+  }
+};
+
+// ---- Recipe API functions ----
+
+export const fetchRecipes = async (projectId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/recipes/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching recipes for project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const createRecipe = async (projectId, recipeData) => {
+  try {
+    const response = await apiClient.post(`/projects/${projectId}/recipes/`, recipeData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating recipe:', error);
+    throw error;
+  }
+};
+
+export const fetchRecipe = async (projectId, recipeId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/recipes/${recipeId}/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching recipe ${recipeId}:`, error);
+    throw error;
+  }
+};
+
+export const updateRecipe = async (projectId, recipeId, recipeData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/recipes/${recipeId}/`, recipeData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating recipe:', error);
+    throw error;
+  }
+};
+
+export const deleteRecipe = async (projectId, recipeId) => {
+  try {
+    const response = await apiClient.delete(`/projects/${projectId}/recipes/${recipeId}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting recipe:', error);
+    throw error;
+  }
+};
+
+// ---- Recipe Steps API functions ----
+
+export const fetchRecipeSteps = async (projectId, recipeId) => {
+  try {
+    const response = await apiClient.get(`/projects/${projectId}/recipes/${recipeId}/steps/`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching recipe steps:`, error);
+    throw error;
+  }
+};
+
+export const createRecipeStep = async (projectId, recipeId, stepData) => {
+  try {
+    const response = await apiClient.post(`/projects/${projectId}/recipes/${recipeId}/steps/`, stepData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating recipe step:', error);
+    throw error;
+  }
+};
+
+export const updateRecipeStep = async (projectId, recipeId, stepData) => {
+  try {
+    const response = await apiClient.put(`/projects/${projectId}/recipes/${recipeId}/steps/`, stepData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating recipe step:', error);
+    throw error;
+  }
+};
+
+export const deleteRecipeStep = async (projectId, recipeId, stepId) => {
+  try {
+    const response = await apiClient.delete(`/projects/${projectId}/recipes/${recipeId}/steps/`, {
+      data: { id: stepId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting recipe step:', error);
     throw error;
   }
 };

@@ -4,8 +4,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import Projects, Customers, EquipmentTypeChoices, ProcessMapEntry, ProductionGoal, SimulationParameters, SimulationResult
-from .serializers import ProjectsSerializer, CustomersSerializer, ProcessMapEntrySerializer, ProductionGoalSerializer, SimulationParametersSerializer, SimulationResultSerializer
+from .models import (Projects, Customers, EquipmentTypeChoices,
+                     ProductionGoal, SimulationParameters, SimulationResult,
+                     Station, Recipe, RecipeStep)
+from .serializers import (ProjectsSerializer, CustomersSerializer,
+                          ProductionGoalSerializer, SimulationParametersSerializer, SimulationResultSerializer,
+                          StationSerializer, RecipeSerializer, RecipeListSerializer, RecipeStepSerializer)
 import os
 from django.conf import settings
 from django.core.files.storage import default_storage
@@ -201,54 +205,6 @@ def upload_sketch(request, project_id):
     return Response({'file_path': path}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET', 'POST', 'PUT', 'DELETE'])
-def process_map(request, project_id):
-    """
-    Handle process map operations for a project
-    """
-    try:
-        project = Projects.objects.get(project_id=project_id)
-    except Projects.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-    
-    if request.method == 'GET':
-        # Return all process map entries for this project
-        entries = ProcessMapEntry.objects.filter(project=project)
-        serializer = ProcessMapEntrySerializer(entries, many=True)
-        return Response(serializer.data)
-    
-    elif request.method == 'POST':
-        # Create a new process map entry
-        request.data['project'] = project.id
-        serializer = ProcessMapEntrySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    elif request.method == 'PUT':
-        # Update an existing process map entry
-        try:
-            entry_id = request.data.get('id')
-            entry = ProcessMapEntry.objects.get(id=entry_id, project=project)
-            serializer = ProcessMapEntrySerializer(entry, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except ProcessMapEntry.DoesNotExist:
-            return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
-    
-    elif request.method == 'DELETE':
-        # Delete a process map entry
-        try:
-            entry_id = request.data.get('id')
-            entry = ProcessMapEntry.objects.get(id=entry_id, project=project)
-            entry.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ProcessMapEntry.DoesNotExist:
-            return Response({"error": "Process map entry not found"}, status=status.HTTP_404_NOT_FOUND)
-
 @api_view(['GET', 'POST', 'PUT'])
 def process_matrix(request, project_id):
     """
@@ -379,9 +335,29 @@ def production_goal(request, project_id):
     
     if request.method == 'GET':
         # Get or create production goal
-        goal, created = ProductionGoal.objects.get_or_create(project=project)
-        serializer = ProductionGoalSerializer(goal)
-        return Response(serializer.data)
+        try:
+            goal, created = ProductionGoal.objects.get_or_create(
+                project=project,
+                defaults={
+                    'primary_target': 'day',
+                    'target_parts_per_hour': 0,
+                    'target_parts_per_day': 0,
+                    'target_parts_per_week': 0,
+                    'target_parts_per_month': 0,
+                    'target_parts_per_year': 0
+                }
+            )
+            serializer = ProductionGoalSerializer(goal)
+            return Response(serializer.data)
+        except Exception as e:
+            import traceback
+            import sys
+            error_details = traceback.format_exc()
+            print(f"Error in production_goal GET: {error_details}", file=sys.stderr)
+            return Response({
+                'error': str(e),
+                'traceback': error_details
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     elif request.method in ['POST', 'PUT']:
         # Get existing or create new
@@ -532,23 +508,180 @@ def quick_simulation(request, project_id):
     try:
         project = Projects.objects.get(project_id=project_id)
     except Projects.DoesNotExist:
+        return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    try:
+        from .services import ProductionSimulator
+        
+        simulator = ProductionSimulator(project_id)
+        
+        # Get manual hoist count if provided in query params
+        hoist_count = request.query_params.get('hoists', None)
+        if hoist_count:
+            try:
+                hoist_count = int(hoist_count)
+            except ValueError:
+                hoist_count = None
+        
+        results = simulator.calculate_throughput(hoist_count=hoist_count)
+        
+        if "error" in results:
+            return Response(results, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response(results)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in quick_simulation: {error_details}", file=__import__('sys').stderr)
+        return Response({
+            'error': str(e),
+            'traceback': error_details
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ---- Station views ----
+
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
+def stations(request, project_id):
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
-    
-    from .services import ProductionSimulator
-    
-    simulator = ProductionSimulator(project_id)
-    
-    # Get manual hoist count if provided in query params
-    hoist_count = request.query_params.get('hoists', None)
-    if hoist_count:
+
+    if request.method == 'GET':
+        qs = Station.objects.filter(project=project)
+        serializer = StationSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        request.data['project'] = project.id
+        serializer = StationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'PUT':
         try:
-            hoist_count = int(hoist_count)
-        except ValueError:
-            hoist_count = None
-    
-    results = simulator.calculate_throughput(hoist_count=hoist_count)
-    
-    if "error" in results:
-        return Response(results, status=status.HTTP_400_BAD_REQUEST)
-    
-    return Response(results)
+            entry_id = request.data.get('id')
+            station = Station.objects.get(id=entry_id, project=project)
+            serializer = StationSerializer(station, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Station.DoesNotExist:
+            return Response({"error": "Station not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    elif request.method == 'DELETE':
+        try:
+            entry_id = request.data.get('id')
+            station = Station.objects.get(id=entry_id, project=project)
+            station.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Station.DoesNotExist:
+            return Response({"error": "Station not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ---- Recipe views ----
+
+@api_view(['GET', 'POST'])
+def recipes(request, project_id):
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        qs = Recipe.objects.filter(project=project).prefetch_related('steps')
+        serializer = RecipeListSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        request.data['project'] = project.id
+        serializer = RecipeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def recipe_detail(request, project_id, recipe_id):
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        recipe = Recipe.objects.prefetch_related('steps__station').get(id=recipe_id, project=project)
+    except Recipe.DoesNotExist:
+        return Response({"error": "Recipe not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = RecipeSerializer(recipe)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = RecipeSerializer(recipe, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        recipe.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
+def recipe_steps(request, project_id, recipe_id):
+    try:
+        project = Projects.objects.get(project_id=project_id)
+    except Projects.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        recipe = Recipe.objects.get(id=recipe_id, project=project)
+    except Recipe.DoesNotExist:
+        return Response({"error": "Recipe not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        qs = RecipeStep.objects.filter(recipe=recipe).select_related('station')
+        serializer = RecipeStepSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        request.data['recipe'] = recipe.id
+        serializer = RecipeStepSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'PUT':
+        try:
+            step_id = request.data.get('id')
+            step = RecipeStep.objects.get(id=step_id, recipe=recipe)
+            serializer = RecipeStepSerializer(step, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except RecipeStep.DoesNotExist:
+            return Response({"error": "Recipe step not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    elif request.method == 'DELETE':
+        try:
+            step_id = request.data.get('id')
+            step = RecipeStep.objects.get(id=step_id, recipe=recipe)
+            step.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except RecipeStep.DoesNotExist:
+            return Response({"error": "Recipe step not found"}, status=status.HTTP_404_NOT_FOUND)

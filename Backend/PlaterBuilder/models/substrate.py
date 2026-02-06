@@ -32,4 +32,4 @@ class Part_Size(models.Model):
         return self.name
     class Meta:
         verbose_name_plural = "Part Sizes"
-        ordering = ['size']
+        ordering = ['length']

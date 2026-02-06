@@ -27,9 +27,6 @@ urlpatterns = [
     path("api/customers/<int:customer_id>/edit/", views.customer_edit, name="customer_edit"),
     path("api/customers/<int:customer_id>/delete/", views.customer_delete, name="customer_delete"),
     
-    # Process Map API endpoints
-    path("api/projects/<str:project_id>/process-map/", views.process_map, name="process_map"),
-    
     # Matrix API endpoints
     path("api/projects/<str:project_id>/process-matrix/", views.process_matrix, name="process_matrix"),
     path("api/projects/<str:project_id>/controls-matrix/", views.controls_matrix, name="controls_matrix"),
@@ -56,7 +53,16 @@ urlpatterns = [
     path("api/projects/<str:project_id>/production-goal/", views.production_goal, name="production_goal"),
     path("api/projects/<str:project_id>/simulation/parameters/", views.simulation_parameters, name="simulation_parameters"),
     path("api/projects/<str:project_id>/simulation/run/", views.run_simulation, name="run_simulation"),
-    path("api/projects/<str:project_id>/simulation/quick/", views.quick_simulation, name="quick_simulation")]
+    path("api/projects/<str:project_id>/simulation/quick/", views.quick_simulation, name="quick_simulation"),
+
+    # Station endpoints
+    path("api/projects/<str:project_id>/stations/", views.stations, name="stations"),
+
+    # Recipe endpoints
+    path("api/projects/<str:project_id>/recipes/", views.recipes, name="recipes"),
+    path("api/projects/<str:project_id>/recipes/<int:recipe_id>/", views.recipe_detail, name="recipe_detail"),
+    path("api/projects/<str:project_id>/recipes/<int:recipe_id>/steps/", views.recipe_steps, name="recipe_steps"),
+]
 
 # Add the router URLs to our urlpatterns
 urlpatterns += router.urls

@@ -84,9 +84,13 @@ class SimulationResult(models.Model):
     # Recommendations
     recommendations = models.TextField(blank=True, null=True, help_text="Recommendations for improvement")
     
+    # Multi-recipe results
+    recipe_results = models.JSONField(null=True, blank=True, help_text="Per-recipe throughput breakdown")
+    station_utilization = models.JSONField(null=True, blank=True, help_text="Per-station utilization data")
+
     # Metadata
     notes = models.TextField(blank=True, null=True, help_text="Additional notes about the simulation")
-    
+
     def __str__(self):
         return f"Simulation for {self.project.project_name} on {self.simulation_date.strftime('%Y-%m-%d')}"
     

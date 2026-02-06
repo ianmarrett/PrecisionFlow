@@ -13,7 +13,8 @@ import Home from './pages/Home';
 import Projects from './pages/Projects';
 import ProjectDetail from './components/projects/ProjectDetail';
 import ProjectForm from './components/projects/ProjectForm';
-import ProcessMap from './components/projects/ProcessMap';
+import StationLayout from './components/projects/StationLayout';
+import RecipeManager from './components/projects/RecipeManager';
 import Simulation from './components/projects/Simulation';
 import Customers from './pages/Customers';
 import CustomerDetail from './components/customers/CustomerDetail';
@@ -35,10 +36,11 @@ function App() {
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
             <Route path="/projects/:projectId/edit" element={<ProjectForm />} />
             
-            {/* Process Map Route - add this */}
-            <Route path="/projects/:projectId/process-map" element={<ProcessMap />} />
+            {/* Station & Recipe Routes */}
+            <Route path="/projects/:projectId/stations" element={<StationLayout />} />
+            <Route path="/projects/:projectId/recipes" element={<RecipeManager />} />
 
-            {/* Simulation Route - Add this */}
+            {/* Simulation Route */}
             <Route path="/projects/:projectId/simulation" element={<Simulation />} />
 
             {/* Customer Routes */}

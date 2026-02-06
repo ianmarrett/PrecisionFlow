@@ -239,25 +239,29 @@ const ProjectDetail = () => {
         </div>
         <div className="card-body">
           <div className="list-group">
-            <Link to={`/projects/${projectId}/process-map`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-              Process Map
+            <Link to={`/projects/${projectId}/stations`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              Station Layout
               <span className="badge bg-primary rounded-pill">1</span>
+            </Link>
+            <Link to={`/projects/${projectId}/recipes`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              Plating Recipes
+              <span className="badge bg-primary rounded-pill">2</span>
             </Link>
             <Link to={`/projects/${projectId}/process-matrix`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               Process Matrix
-              <span className="badge bg-primary rounded-pill">2</span>
+              <span className="badge bg-primary rounded-pill">3</span>
             </Link>
             <Link to={`/projects/${projectId}/controls-matrix`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               Controls Matrix
-              <span className="badge bg-primary rounded-pill">3</span>
+              <span className="badge bg-primary rounded-pill">4</span>
             </Link>
             <Link to={`/projects/${projectId}/budget`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               Budget
-              <span className="badge bg-primary rounded-pill">4</span>
+              <span className="badge bg-primary rounded-pill">5</span>
             </Link>
             <Link to={`/projects/${projectId}/quote`} className="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
               Final Quote
-              <span className="badge bg-primary rounded-pill">5</span>
+              <span className="badge bg-primary rounded-pill">6</span>
             </Link>
           </div>
         </div>
