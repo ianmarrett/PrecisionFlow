@@ -487,18 +487,27 @@ def run_simulation(request, project_id):
     
     # Run new simulation for POST requests
     elif request.method == 'POST':
-        from .services import ProductionSimulator
-        
-        # Get simulation name if provided
-        name = request.data.get('name', "Simulation Run")
-        
-        simulator = ProductionSimulator(project_id)
-        result = simulator.run_simulation(name=name)
-        
-        if "error" in result:
-            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-        
-        return Response(result, status=status.HTTP_201_CREATED)
+        try:
+            from .services import ProductionSimulator
+            
+            # Get simulation name if provided
+            name = request.data.get('name', "Simulation Run")
+            
+            simulator = ProductionSimulator(project_id)
+            result = simulator.run_simulation(name=name)
+            
+            if "error" in result:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in run_simulation: {error_details}", file=__import__('sys').stderr)
+            return Response({
+                'error': str(e),
+                'traceback': error_details
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def quick_simulation(request, project_id):
@@ -532,6 +541,7 @@ def quick_simulation(request, project_id):
         results = simulator.calculate_throughput(hoist_count=hoist_count)
         
         if "error" in results:
+            print(f"Quick simulation error for project {project_id}: {results.get('error')}", file=__import__('sys').stderr)
             return Response(results, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(results)

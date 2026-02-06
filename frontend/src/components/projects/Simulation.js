@@ -187,7 +187,13 @@ const Simulation = () => {
       setSelectedResult(result);
       setError(null);
     } catch (err) {
-      setError('Error running simulation. Please try again later.');
+      // Extract error message from API response
+      const errorMessage = err.response?.data?.error || 
+                           err.response?.data?.message || 
+                           err.message || 
+                           'Error running simulation. Please try again later.';
+      setError(errorMessage);
+      console.error('Simulation error:', err.response?.data || err);
     } finally {
       setSimLoading(false);
     }
